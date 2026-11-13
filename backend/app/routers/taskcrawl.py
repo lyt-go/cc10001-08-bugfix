@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/taskcrawl", tags=["采集任务"])
 
 service = TaskcrawlService()
 
-LIST_FIELDS = ["任务编号", "采集源名称", "规则编号", "调度周期", "增量字段", "批次大小", "起始水位", "截止水位"]
+LIST_FIELDS = ["任务编号", "采集源名称", "规则编号", "调度周期", "增量字段", "批次大小", "起始水位", "截止水位", "代理节点编号", "限速策略编号"]
 STATUSES = ["草稿", "待调度", "执行中", "已完成", "已终止"]
 
 
@@ -50,9 +50,12 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条采集任务执行提交调度、启动任务、终止任务；不允许的动作会被拦下并说明原因。"""
-    action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    """对单条采集任务执行提交调度、启动任务、完成任务、终止任务。
+
+    启动任务会联动校验出口代理节点与限速策略：任一失效，任务停在待调度。
+    """
+    action = str(payload.values.get("action") or payload.action or "").strip()
+    entry, message = service.run_action(entry_id, action, payload.values)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)

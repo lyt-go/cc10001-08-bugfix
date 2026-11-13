@@ -50,9 +50,13 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条限速策略执行提交策略评估、启用策略、暂停策略；不允许的动作会被拦下并说明原因。"""
-    action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    """对单条限速策略执行提交策略评估、启用策略、暂停策略；非法流转会被拦下并说明原因。
+
+    「提交策略评估」可在 values 里携带「评估结果：不通过」模拟评估失败；
+    草稿不能跨级直接启用，已暂停的策略不会被新任务选中。
+    """
+    action = str(payload.values.get("action") or payload.action or "").strip()
+    entry, message = service.run_action(entry_id, action, payload.values)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)

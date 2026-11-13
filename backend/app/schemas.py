@@ -26,6 +26,8 @@ class EntryPayload(BaseModel):
 
     values: dict[str, Any] = Field(default_factory=dict)
     remark: str | None = None
+    # 兼容直接平铺提交的 action；与 values.action 同时存在时以 values 为准
+    action: str | None = None
 
 
 

@@ -50,9 +50,13 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条代理节点执行发起探测、标记可用、下线节点；不允许的动作会被拦下并说明原因。"""
-    action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    """对单条代理节点执行发起探测、标记可用、下线节点；非法流转会被拦下并说明原因。
+
+    「标记可用」可在 values 里携带「探测结果：失败」模拟探测失败；
+    探测中、已下线的节点不能跨级变成可用，下线后必须重新发起探测。
+    """
+    action = str(payload.values.get("action") or payload.action or "").strip()
+    entry, message = service.run_action(entry_id, action, payload.values)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)

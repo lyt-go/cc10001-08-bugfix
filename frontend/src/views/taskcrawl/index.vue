@@ -70,8 +70,8 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/taskcrawl'
-const columns = ["任务编号", "采集源名称", "规则编号", "调度周期", "增量字段", "批次大小", "起始水位", "截止水位"]
-const actions = ["提交调度", "启动任务", "终止任务"]
+const columns = ["任务编号", "采集源名称", "规则编号", "调度周期", "增量字段", "批次大小", "起始水位", "截止水位", "代理节点编号", "限速策略编号"]
+const actions = ["提交调度", "启动任务", "完成任务", "终止任务"]
 const statuses = ["草稿", "待调度", "执行中", "已完成", "已终止"]
 const stats = [{"label": "采集任务总数", "value": 0}, {"label": "执行中任务", "value": 0}, {"label": "已完成任务", "value": 0}]
 
@@ -99,10 +99,11 @@ async function runAction(action: string, row: Row) {
   try {
     const response = await request(`${ENDPOINT}/${row.id}/actions`, {
       method: 'POST',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ values: { action } }),
     })
-    if (!response.ok) {
-      throw new Error('采集任务动作未生效，请稍后重试')
+    const payload = await response.json().catch(() => null)
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.message ?? '采集任务动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {
